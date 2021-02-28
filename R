@@ -1,0 +1,491 @@
+## Introduction
+
+In this project we are focusing on the missing persons data for the United States. Our data is derived from NamUS' public data software. This missing persons' data is specifically for the United States. In this data we explore the number of people that are missing in the U. S, their ages, race/ethnicity, states, and counties. The reason we chose to look at this data is because there is a growing number of missing persons in America by the year, and we feel that it is an issue that deserves more attention (not only from the media but also from authorities). In fact, Statista.com report that, as of 2018, over 600,000 people are recorded missing yearly. A missing person can be defined as a person who may go missing due to an accident, death in a location where the body cannot be found, crime, a voluntary disappearance, or for other reasons unknown to the public. The reasons for going lost are numerous and shifted and can incorporate mental illness, accidents, household violence, and being a casualty of crime. 
+While there are risks linked to any particular missing persons case, specific population groups are perceived as especially at risk of becoming lost or missing. Grown-ups are more likely to be recorded as long-term lost people, in any case, and youth are most likely to be detailed lost at a rate of 6 times the national average. Thus, the most widely known, at risk groups of becoming  lost within our communities include children and teens, young adults, those enduring a mental illness or depression, the elderly, those living with dementia, people communicating self-destructive thoughts, those living with mental or physical incapacity and who have no access to life saving medications. As these groups are understood to be at risk, for plausible reasons, our project aims to look at the data for missing person sin America under three distinct scopes, 1. age & gender, 2. race/ethnicity, and 3. geographical location. In doing so, we hope to observe additional trends within those people who have gone missing between 1902 and 2018, to compile a form of risk self-assessment for the viewer to utilize in answering the question: How at risk am I of becoming a missing person?
+---
+
+# Required Pakages
+```{r, message=F}
+library(tidyverse)
+library(lubridate, warn.conflicts = FALSE)
+library(ggplot2)  
+library(gridExtra)  ## we use the library function to load in all of our required packages for this project
+```
+
+---
+
+# Import Data & Preparation
+The first step is to load in our data, 'missing_persons.csv' and save it into a variable (in this case, we called that variable 'missing_data':
+
+```{r, message=F}
+## First, we load in our data frame and save it into a variable called 'missing_data'
+## Then, we use glimpse() to take a quick look at this data before starting our analysis
+missing_data <- read.csv("missing_persons.csv", row.names = NULL, sep = ";")
+glimpse(missing_data)
+```
+
+Next, we created a new data frame called 'missing_persons' from only the following selected columns of the original data frame 'missing_data' using the select function.
+
+```{r}
+# Here, we just select the specific columns from the original data frame that we will actually be using
+# and saving these into a new data frame called 'missing_persons'
+missing_persons <- missing_data %>% 
+  select(id.Formatted,namus2Number,First.Name,Last.Name,Gender,Race...Ethnicity,
+        Current.Age.To,Computed.Missing.Max.Age, Date.Of.Last.Contact,
+        City.Of.Last.Contact, State.Of.Last.Contact,County.Of.Last.Contact)
+glimpse(missing_persons)
+```
+
+Here, we used Lubridate in order to change our complete dates (including date/month/year) from simple strings into actual dates that `R` can understand and process in order to give appropriate outputs using these dates when necessary.
+```{r}
+## Used the package 'lubridate' to change our variable of string-formatted dates
+#into actual dates that R can recognize.
+missing_persons <- missing_persons %>% 
+  mutate(year = lubridate::year(Date.Of.Last.Contact), 
+        month = lubridate::month(Date.Of.Last.Contact),
+        day = lubridate::day(Date.Of.Last.Contact))  
+glimpse(missing_persons)
+
+```
+
+## Renaming Variables
+
+We also renamed the variable 'Race...Ethnicity' from the original data frame as 'Race_Ethnicity',  'Current.Age.To' as 'Current_Age' , and 'Computed.Missing.Max.Age' as 'Missing_Age' to make it simpler to work with within an reference these variables within our code
+
+```{r}
+## Renaming three of the original variables
+missing_persons <- missing_persons %>% 
+  rename(Race_Ethnicity = Race...Ethnicity,
+         Current_Age = Current.Age.To,
+         Missing_Age = Computed.Missing.Max.Age)
+
+```
+
+---
+
+# Data Analysis and Visualization
+As mentioned in our introduction, there is plenty of existing statistical data regarding the breakdown of the missing persons. People already know to be at higher risk are usually minors and people suffering from mental illnesses, however,  our aim here is to look at this data through a different set of scopes and see if we notice any trends which might allow people to understand their personal risks of becoming missing.
+
+- Scope 1: Looking at missing persons through gender and age groups
+- Scope 2: Switching the view to race/ethnicity of the missing persons
+- Scope 3: Trends in Geographical Location of the missing persons
+
+---
+
+# Scope I: Looking at Missing Persons Through Gender and Age:
+
+- In thinking of missing people, what usually comes to mind are children who are victims of kidnapping and taken from their families. Why are these the first cases that come to mind? One reason could be that we don’t often hear cases of missing people on mainstream news as it is, but when we do, it is typically of minors suspected of having been taken or kidnapped from their homes or families, it makes the news. 
+- However, statistics from the year 2019 alone show that most missing persons cases are endangered runaways (most are teens and young adults that have voluntarily left their home). Furthermore, trends between the missing can also be observed through their gender. Globally, men are more likely to be reported missing, especially when it comes to cases linked to armed violence, while women and children are more often the targets of forced abductions. For more info visit:  
+
+ 1.[Link1](https://www.missingkids.org/theissues/runaways#:~:text=Doing%20About%20it-,Overview,homelessness%20when%20they%20are%20missing.) 
+
+ 2.[Link2](https://www.icmp.int/news/gender-and-the-missing/)
+
+So, our first scope for this data aims to see if there is a significant disparity in the amount of missing people both by gender and by age, as well as by the crossover of these two variables. 
+
+
+We begin by counting the number of total missing males versus missing females within out data set:
+```{r}
+missing_persons %>% 
+  count(Gender) %>%  ## counting total for each gender
+  arrange(desc(n))  ## arranging counts in descending order
+
+```
+
+- This table shows us that, indeed, there is a big difference between the number of missing females as compared to the number of missing males in America, overall. 
+- In fact, the total number of missing males is almost twice that of the total number of missing females.   
+
+Now, to aid the visualization of the gender gap we saw above, we plot the differences in gender of the total missing persons in the US: 
+
+```{r}
+## Making a bar graph to plot overall gender counts
+ggplot(data=missing_persons,aes(x=Gender,fill=Gender)) +
+  geom_bar()+
+  ggtitle("Male vs. Female")
+
+```
+
+Next, we want to sort through the Missing_Age column and count all of the ages to see which are the top five most common among the missing people.
+```{r}
+## Looking at the most common ages for the missing persons overall
+missing_persons %>% 
+  count(Missing_Age) %>%
+  arrange(desc(n)) %>% 
+  head(5)
+
+count_data <- missing_persons %>%   ## Saving all below into a variable called 'count_data' 
+  group_by(Missing_Age) %>%         ## Grouping by missing ages 
+  summarize(n = n())                ## Using summarize to count each of the different ages
+
+count_data %>% 
+  ggplot(missing_persons, mapping= aes(x=Missing_Age, y= n)) +  ## plotting line graph for the most common missing ages
+  geom_line(color="Red")+
+  ggtitle("Most Common Missing Ages")
+
+
+
+
+```
+
+- As you can see in the table, it looks like the most common age/age range for the missing persons is the twenties age range. Following people in their twenties, another common age between the missing persons is in the teen range (specifically, the age of 16). 
+- What does this make us consider about the missing in America? Why does it seem more common for young adults and teens to go missing than people in other stages in their life? 
+- An interesting breakdown of the reasons for this can be found at this [link](https://www.missingpersons.gov.au/about/why-people-go-missing)
+
+The last thing we want to accomplish within this scope is to unite both age and gender and see if there is a significant trend for the number of missing persons across the junction of these two variables. First, we sectioned our ages into two groups: minors (under 18) and everyone else (over 18), and then count the genders under those two age groups individually.
+
+This shows the amount missing males and females who were under the age of 18 at the time they went missing. Let's save this into a variable called 'graph 1' for future reference.
+```{r}
+missing_persons %>% 
+  filter(Missing_Age<18) %>%   ## Filter for only minors under 18 y/o
+  group_by(Gender) %>% 
+  count()  ## Counting minors by gender groups
+
+graph1<-missing_persons %>% 
+  filter(Missing_Age<18) %>%   
+  ggplot(aes(x=Gender, fill=Gender))+  ## Plotting bar graph of the gender counts for minors
+  geom_bar(color='Black')+
+  ggtitle("Missing Minors")
+
+```
+As far as minors go, females have a much higher count of missing people than do males. Next up, we want to see if that gap follows through for persons over the age of 18:
+
+
+This now demonstrates the count of missing males and females who went missing at or over the age of 18. This information is saved to a variable called 'graph2'.
+```{r, message=F}
+## Filtering for missing ages between 18 and 65
+missing_persons %>% 
+  filter(Missing_Age>=18 & Missing_Age<65 ) %>% 
+  group_by(Gender) %>% 
+  count()
+
+graph2<-missing_persons %>% 
+  filter(Missing_Age>=18 & Missing_Age<65) %>% 
+  ggplot(aes(x=Gender, fill=Gender))+          ## Plotting gender counts for this age group
+  geom_bar(color='Black')+
+  ggtitle("Missing 18 y/o +") 
+```
+Unlike for missing minors, for the people that went missing in their early adulthood and before hitting the age 65, it seems that males have a much higher count than females.
+
+
+Furthermore , we can look at how many missing persons were over the age of 65+ (senior age) when they went missing. We will save this information into a variable called 'graph3'.
+```{r}
+## Filtering for missing ages over 65
+missing_persons %>% 
+  filter(Missing_Age>=65 ) %>% 
+  group_by(Gender) %>% 
+  count()
+
+graph3<-missing_persons %>% 
+  filter(Missing_Age>=65) %>% 
+  ggplot(aes(x=Gender, fill=Gender))+          ## Plotting gender counts for this age group 
+  geom_bar(color='Black')+
+  ggtitle("Missing Seniors") 
+```
+
+To conclude this scope, we want to plot the gender proportions we've found for each of our three different age groups using the grid.arrange function.
+```{r}
+ grid.arrange(graph1, graph2,graph3, ncol=3) ## Arranging our three graphs into a single pane
+```
+
+## Scope I Conclusion:
+
+- By looking at at the missing persons data through gender and age individually, and then joining these variables as a filter, we observed a very interesting shift in the gender-count of missing persons whenever age was also part of the filtering. 
+- Sectioning the data only by gender gave us that, overall, there are more males missing in America than females. However, when we filtered our data by three separate age groups (minors, young adults/middle aged, and seniors) and did a gender count through these different age groups, we found that:
+- 1. For minors alone (under 18), there is a significantly higher count of missing females than males.
+- 2. For all other ages (18 & up to senior age) there was a much larger count of missing males than females. 
+- While the numbers alone cannot give us reason for the proportionality flip that we observed, there are resources on the web that take on the challenge of giving rationale behind such trends in missing persons cases.
+
+---
+
+# Scope II: Switching the View to Race/Ethnicity of the Missing Persons:
+
+Another view we thought would be interesting to take on was looking at our data through racial/ethnic groups in order to see if the amount of missing people was mostly even or uneven among these different population groups 
+
+First off, we want to see what are the five racial/ethnic groups with the largest amount of missing persons reported in America (based on our data set's dates only). In this case, we're  listing the top five categories using top_n and arranging these in descending order by number of missing persons cases.
+
+```{r}
+## Listing the 5 racial/ethnic groups with the most missing persons
+missing_persons %>% 
+  count(Race_Ethnicity) %>%  
+  top_n(5) %>%
+  arrange(desc(n))
+```
+
+Above, we can see that the racial group with the most missing persons cases is White/Caucasian. Following this group is  Black/African-Americans and in third place is Hispanic/Latinos. At the end of the list is Asians.
+
+We can take this a step further and actually plot the counts of how many missing person there are among each different race/ethnicity group. This can help us visualize just how much larger this number is for White/Caucasians versus all of the other groups. 
+```{r}
+missing_persons %>% 
+  ggplot(aes(x=Race_Ethnicity, fill=Race_Ethnicity)) + ## Plotting top 5 racial/ethnic groups
+  geom_bar(show.legend = FALSE)+
+  coord_flip()+                 ## Flipping the graph horizontally for clearer axis titles
+  ggtitle("Missing People")  
+
+```
+
+The bar graph clearly highlights that the racial/ethnic group with the highest count of missing persons is White/Caucasian. Below, we look at the count of missing persons for only the minority groups in the U.S. To do so, we filtered for all of the racial/ethnic groups except White/Caucasian. Then, we list the top 6 with missing persons cases in descending order.
+```{r}
+
+missing_minorities<- missing_persons %>% 
+  filter(Race_Ethnicity!= "White / Caucasian") %>% ## filtering for all groups except White/Caucasian
+  group_by(Race_Ethnicity) %>% 
+  summarise(count=n()) %>%
+  arrange(desc(count)) %>% ## Arranging them in descending order by count
+  head(6)                  ## Listing the top 6
+missing_minorities 
+
+missing_minorities %>% 
+  ggplot(missing_persons, mapping=aes(x = Race_Ethnicity, y=count, fill=Race_Ethnicity))+ ## Plotting top 6 minority groups
+  geom_col(show.legend = FALSE)+
+  coord_flip() +                                        #### Flipping the graph horizontally for clearer axis titles
+  ggtitle("Top Missing Minorities")
+
+```
+
+We see here that for minorities, overall, the one with the highest count of missing persons is Black/African-American, followed by Hispanic/Latino, then people belonging to both White/Caucasian and Hispanic/Latino, and the ones with the lowest counts are Asians and Native Americans/Alaskan Natives.
+
+We wanted to take this a step further to see if the Race/Ethnicity proportions look the same when we  filter across age groups as well.
+```{r}
+missing_minorities<- missing_persons %>% 
+  filter(Missing_Age <18) %>%   ## Filtering only for missing minors under 18
+  group_by(Race_Ethnicity) %>% 
+  summarise(count=n()) %>%
+  arrange(desc(count)) %>% ## Arranging them in descending order by count
+  head(6)                  ## Listing the top 6         
+missing_minorities 
+
+missing_minorities %>% 
+  ggplot(missing_persons, mapping=aes(x = Race_Ethnicity, y=count, fill=Race_Ethnicity))+ ## Plotting missing minors counts
+  geom_col(show.legend = FALSE)+
+  coord_flip() +                                        #### Flipping the graph horizontally for clearer axis titles
+  ggtitle("Missing Minors")
+
+
+```
+
+The bar chart above shows us that, overall, White/Caucasians also continue to hold leading numbers for missing minors in America. If we focus on the minorities for a second, we notice that Hispanics hold the leading count for missing minors. Now we want to see if this changes when we switch our filter to only those ages equal to or over 18:
+
+```{r}
+missing_minorities<- missing_persons %>% 
+  filter(Missing_Age>=18) %>%  ## Filtering only for missing persons 18 and up
+  group_by(Race_Ethnicity) %>% 
+  summarise(count=n()) %>%
+  arrange(desc(count)) %>%   ## Arranging them in descending order by count
+  head(6)                   ## Listing the top 6 
+missing_minorities 
+
+missing_minorities %>% 
+  ggplot(missing_persons, mapping=aes(x = Race_Ethnicity, y=count, fill=Race_Ethnicity))+
+  geom_col(show.legend = FALSE)+
+  coord_flip() +                                   #### Flipping the graph horizontally for clearer axis titles
+  ggtitle("Missing Persons Over 18")
+
+```
+
+Once again, filtering across age groups allows us to see a significant change in the distribution of those numbers. Looking at just the minorities, we can see that for ages equal to or above 18, Black/African-Americans now have the highest count of missing persons.
+
+## Scope II Conclusion: 
+
+- Overall, looking at the missing persons through race/ethnicity did enable us to see significant differences in the number of missing persons within each of these groups. 
+- There is a much larger number of missing white/Caucasian people in America than any of the other groups, and for minorities the group with the leading count is dependent on the age group we filter to. 
+
+---
+
+# Scope III:  Trends in Geographical Location of the Missing Persons:
+
+- Although there are missing person reports from every US state, we want to know if certain areas of the country have a significantly higher count of missing persons for the recorded years in this data set. 
+- With this, we hope to see some kind of correlation between the type of area (urban, rural, suburban, highly populated, less populated, etc...) and the amount of missing persons that have went missing from such areas.
+
+Let's start by listing the five states with the highest number of missing persons:
+```{r}
+
+missing_persons %>% 
+  count(State.Of.Last.Contact) %>%   ## Counting missing persons within each U. S State
+  slice_max(order_by= n,n=5)         ## Ordering top 5 states from largest count to smallest
+
+```
+
+Listed above, we can that California is the state with the most missing persons overall. Trailing after California is Florida in second place, and third is our home state of Texas.
+ 
+Now, we want to analyze the number of missing persons just within these top three states. We look closer into these states by listing the six counties with the most missing persons within each of these states.
+
+
+Here, we're gathering the top 6 counties with missing persons in the state of California using the summarize function. Then, we graph the count of missing persons by county using geom_bar along with facet wrap by county.
+
+```{r}
+Cali <- missing_persons %>% 
+  filter(State.Of.Last.Contact == 'CA')  %>%  ## Filtering to only the state of Cali
+  group_by(County.Of.Last.Contact) %>%   ## Grouping by county 
+  summarise(count=n()) %>%           ## Counting cases per county
+  arrange(desc(count)) %>%             ## Arranging in descending order by count
+  head(6)                             ## and listing top 6 counties
+Cali
+
+Cali %>%
+  ggplot(missing_persons, mapping=aes(x = County.Of.Last.Contact,y=count, fill=County.Of.Last.Contact))+
+  geom_bar(stat = "identity")+                ## Making California's bar graph for top 6 counties with missing persons
+  facet_wrap(~County.Of.Last.Contact)+    ## Using facet_wrap to have individual county's counts in a single pane
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  ggtitle("California's Missing by County")
+
+```
+
+- Interestingly enough, Los Angeles county has the highest count of missing persons, and it is the most densely populated of all the listed counties within California, in fact, in the entire country. 
+- LA not only has the highest population, but it is also one of (if not) the most attractive spots in California for travel and tourism. On the flip side, counties with smaller populations have lower counts of missing persons almost respectively.
+
+
+Next up, we want to continue what we did for California for the state of Florida to see if a similar trend occurs here (that is, a higher count of missing persons occurs for the highest populated county and so on). We also graph these counts for the Florida counties.
+```{r}
+Florida <- missing_persons %>% 
+  filter(State.Of.Last.Contact == 'FL')  %>%  ## Filtering to only the state of Florida
+  group_by(County.Of.Last.Contact) %>%   ## Grouping by county 
+  summarise(count=n()) %>%           ## Counting cases per county
+  arrange(desc(count)) %>%             ## Arranging in descending order by count
+  head(6)                             ## and listing top 6 counties
+Florida
+Florida %>%  ggplot(missing_persons, mapping=aes(x = County.Of.Last.Contact,y=count, fill=County.Of.Last.Contact))+
+  geom_bar(stat = "identity")+                ## Making Florida's bar graph for top 6 counties with missing persons
+  facet_wrap(~County.Of.Last.Contact)+    ## Using facet_wrap to have individual county's counts in a single pane
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())+
+  ggtitle("Florida's Missing by County")
+
+```
+
+- Indeed, a similar trend follows for the state of Florida from the state of California. Out of Florida's top 6 counties, Miami-Dade is the largest county and has the most missing persons cases, followed by smaller counties all of which have less and less missing persons cases (with population decrease we also observe a decrease in missing persons cases). 
+- Like LA is to California, Miami-Dade is a leading tourist attraction and among the most popular areas in the entire state of Florida.
+
+
+Finally, we carry on this same analysis for the state of Texas to see which counties lead the missing persons count here:
+
+```{r}
+Texas <- missing_persons %>% 
+  filter(State.Of.Last.Contact == 'TX')  %>%  ## Filtering to only the state of Texas
+  group_by(County.Of.Last.Contact) %>%   ## Grouping by county 
+  summarise(count=n()) %>%           ## Counting cases per county
+  arrange(desc(count)) %>%             ## Arranging in descending order by count
+  head(6)                             ## and listing top 6 counties
+Texas
+Texas %>%  ggplot(missing_persons, mapping=aes(x = County.Of.Last.Contact,y=count, fill=County.Of.Last.Contact))+
+  geom_bar(stat = "identity")+                ## Making Texas' bar graph for top 6 counties with missing persons
+  facet_wrap(~County.Of.Last.Contact)+    ## Using facet_wrap to have individual county's counts in a single pane
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())+
+  ggtitle("Texas' Missing by County")
+
+```
+
+And finally, for the state of Texas, the same relationship can be observed as for its leading counterparts. Harris county has the highest number of missing persons cases being the largest in Texas, and it is followed by less populated counties with increasingly smaller number of cases.
+
+## Scope III Conclusion:
+
+- Overall, when looking at the missing persons data through a geographical scope (sorting by city, county, etc...), it seems that a trend follows through for larger territories versus smaller ones (both between states and between counties). 
+- This also allows us to consider a possible correlation/relationship between geography/demography and the number of missing persons in the U.S. Using this scope, we noticed a direct relationship between an area's size/populace and the count of missing persons from such areas. We observed this trend first between U. S states (California being the largest, most populated U. S State had the highest missing persons count, followed by Florida, the third largest state, and Texas, the second largest).
+- When we looked at the individual states by county, we noticed that the same was true here. The biggest county contained the most missing persons cases while all other smaller counties followed in  decreasing numbers as county population became smaller.
+
+---
+
+# Other Interesting Points From Our Data:
+
+- Since we live in Texas, we wanted to address a few more questions regarding missing persons cases within our state.
+Here, we list the 3 Texas Counties that have reported the most missing minors (under the age of 18) for the years included in our data.
+```{r}
+missing_persons %>% 
+  filter(State.Of.Last.Contact =='TX',Missing_Age< 18) %>%  ## Filter for only minors in TX
+  select(State.Of.Last.Contact, County.Of.Last.Contact, Missing_Age) %>% 
+  count(County.Of.Last.Contact) %>%  ## Counting per Texas county
+  head(3) %>%                     ## List only top 3 
+  arrange(desc(n))
+
+```
+
+
+- Another interesting question we'd want to answer is: in which specific year did the largest amount of people go missing?
+
+```{r}
+missing_persons %>% 
+  count(year) %>%   ## Counting cases per year
+  arrange(desc(n)) %>% 
+  head(1)      ## Listing the year with the highest number of cases
+```
+
+In the year 2016 alone, almost 700 people went missing in the united states, making it the highest of all other years within this data set.
+
+
+- Furthermore, when we were eyeballing our data before beginning  this project, we noticed a lot of '0' values for Missing_Age, which meant that those missing persons were infants at the time they went missing. We found this interesting because there was an abnormal amount of these zeros in our table. Given that, our next focus is on missing infants (children aged 1 and under) in the United States.
+```{r}
+missing_persons %>% 
+  filter(Missing_Age<= 1) %>%   ## Filtering for only missing infants under the age of 1
+  select(State.Of.Last.Contact, County.Of.Last.Contact, Missing_Age) %>% 
+  count(State.Of.Last.Contact) %>%  ## Counting missing infants withing each state
+  arrange(desc(n)) %>% 
+  head(3)                 ## Listing only the top 3
+  
+```
+
+California is at the top here once again.
+
+- Next, let's look at how the amount of missing persons changed throughout the years? Is there a positive trend or a negative trend?
+
+```{r}
+ggplot(data = missing_persons,aes(x= year))+  ## Plotting progression of missing persons cases from first to latest year reported
+  geom_histogram(color='navy',fill='purple')+
+  ggtitle("Missing Persons Over The Years")
+
+```
+
+Is is easy to see that the number of missing persons (generally) has risen throughout the years. While in the early 1900s we had below 250 cases, starting in the 2000s, the numbers do not fall below 500 and hit an all-time high in the year 2018 (the latest year recorded by this data).
+
+
+- Finally, we want to see how the ratio between missing males and missing females changes as age changes:
+```{r}
+percent_gender <- missing_persons %>% 
+  group_by(Gender) %>%   ## Grouping by gender
+  count(Missing_Age) %>%    ## Counting these for each age 
+  mutate(Percent = n / sum(n)*100)   ## Calculating M/F proportions for each of the ages
+percent_gender
+
+ggplot(percent_gender, aes(x = Missing_Age, y = Percent, fill = Gender))+  
+  geom_bar(stat = "identity")+       
+  ggtitle("Gender Proportions Throughout Missing Ages")
+
+```
+
+---
+
+# Conclusion of Our Analysis:
+
+- Our main tool set for this project were dyplr tools as well as the packages of Lubridate,tidyverse, ggplot2 and GridExtra. We utilized filter a lot throughout our analysis, since a big chunk of our work dealt with sifting our data through specific scopes in order to see how these changed our outputs. 
+- Our main takeaway from scope one was the flip that occurred when we counted the missing persons by gender and filtered through  the three major age groups (minors, young adults/ middle aged, and senior). While the female count for missing minors was higher than the male count, for all ages over 17, the opposite occurred (missing male count became higher than female count). 
+- From scope 2, we noted that the racial group with the most missing persons was White/Caucasian. However, for minority groups, the highest count depended on the age groups for which we filtered. For minorities under the age of 18, Hispanics led the highest count of missing people followed by Black/African-Americans, but in the flip side, when filtering for the ages of 18 and up,  the minority with the highest count of missing persons became Black/African-Americans and then Hispanic/ Latinos. 
+- Finally, our third scope gave us some insight as to which U. S territories are know for significantly higher missing persons reports and what we observed here was a direct correlation between the size of these areas and the amount of people that went missing from them. Not only did the largest states have the highest number of missing persons reports, but when looking closer into these states, we saw that the trend followed  for their counties. The largest counties had more missing people than the smaller ones, and in fact, the number of missing persons seemed to follow in the same direction as the population of these individual areas (increased or decreased in line with the population size).
+
+---
+
+# Project Summary:
+
+Overall, we were able to grasp some pretty interesting aspects of this data by using basic dyplr tools. We came in accepting that might or might not find anything to make connections between or stem conclusions from within our data. However, seeing as certain trends clearly manifested throughout the scopes that we used for this information, it allowed us to seek for further reasoning as to why these specific trends might exist. The source we got our data from (NamUS) reports that as of now, the amount of people who go missing every single year in America stands at around 600,000, an insanely large number that, according to current trends, is only expected to continue to grow. It is important to educate people about this topic, because missing persons encompasses cases of a broad spectrum. From possible kidnappings, human trafficking, suicides, and endangered runaways, the reasons people go missing here and around the globe are various. However, as we mentioned in the beginning of this project, our aim was for the viewer to look at our analysis and get a better idea of where he/she might stand in a scale that measures their personal risk of becoming a missing person in America. 
+
+---
+
+# References:
+
+1. https://www.icmp.int/news/gender-and-the-missing/
+2. https://stackoverflow.com/questions/29922195/return-most-frequent-string-value-for-each-group
+3. https://www.missingkids.org/footer/media/keyfacts
+4. https://www.missingkids.org/theissues/runaways#:~:text=Doing%20About%20it-,Overview,homelessness%20when%20they%20are%20missing.
+5. https://www.r-graph-gallery.com/
+6. https://www.missingpersons.gov.au/about/why-people-go-missing
+7. https://www.statista.com/statistics/240401/number-of-missing-person-files-in-the-us-since-1990/
+
+
+--- 
+
+
+## \center Thank You! \center
+
+
+
+
+
