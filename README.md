@@ -1,7 +1,7 @@
 # Data-Science-I-Project
 
 ## Missing Persons in the United States
-This project is from Data Science I course. It is about "Missing Persons in the United States".
+This project is about "Missing Persons in the United States". I have used R language to analyze data and to get valuable insight.
 
 ## Introduction
 
